@@ -1,0 +1,25 @@
+{
+    "name": "pathfinder",
+    "description": "Lagg Squad's very own Telegram bot.",
+    "version": "0.1.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/leyete/pathfinder"
+    },
+    "keywords": [
+        "python",
+        "aws",
+        "lambda",
+        "serverless",
+        "telegram-bot"
+    ],
+    "author": "Lagg Squad Dev Team",
+    "license": "GPL-3.0",
+    "dependencies": {
+        "serverless-python-requirements": "^5.1.0"
+    },
+    "bugs": {
+        "url": "https://github.com/leyete/pathfinder/issues"
+    },
+    "homepage": "https://github.com/leyete/pathfinder#readme"
+}

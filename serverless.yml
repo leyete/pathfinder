@@ -1,0 +1,25 @@
+service: lepathfinderbot
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: python3.8
+  region: eu-west-3
+  environment:
+    TELEGRAM_TOKEN: ${file(./serverless.env.yml):TELEGRAM_TOKEN, ''}
+
+functions:
+  webhook:
+    handler: handler.webhook
+    events:
+      - http: POST /
+
+  set_webhook:
+    handler: handler.set_webhook
+    events:
+      - http: POST /set_webhook
+
+plugins:
+  - serverless-python-requirements
+
+# vim: ft=yaml ts=2 sw=2 sts=2 et fenc=utf-8
