@@ -1,5 +1,5 @@
-# Copyright (C) 2020 Lagg Squad dev team.
-# This source code is released under a GPLv3 license.
+# Copyright (C) 2020 Lagg Squad Dev Team.
+# This source code is released under a GPL-3.0 license.
 
 '''
 The handler module contains the AWS Lambda functions that implement
@@ -8,70 +8,102 @@ the available endpoints.
 
 import json
 import logging
-import telegram  # python-telegram-bot package.
+import pathfinder
+import telegram
+
+from typing import Union
 
 
-# Setup logging subsystem.
-logger = logging.getLogger("lepathfinderbot")
-logging.basicConfig(level=logging.INFO)
-
-# Endpoint responses.
-OK_RESPONSE = {
-    'statusCode': 200,
-    'headers': {'Content-Type': 'application/json'},
-    'body': json.dumps('ok'),
-}
-ERROR_RESPONSE = {
-    'statusCode': 400,
-    'body': json.dumps('Oops, something went wrong!'),
-}
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 
-def configure_bot():
+# ------------------------------------------------------------------------------
+#   HELPER FUNCTIONS
+# ------------------------------------------------------------------------------
+
+def ok_response(
+        code: int = 200,
+        body: Union[str,dict] = 'ok',
+        headers: dict = {}
+) -> dict:
     """
-    Configures the bot with a Telegram Token.
+    Generates and returns a response to show success.
+
+    Parameters:
+        code (:obj:`int`, optional): Status code.
+        body (:obj:`str` | :obj:`dict`, optional): Body of the message, will be sent as a
+            JSON string.
+        headers (:obj:`dict`, optional): Additional headers. The Content-Type header is
+        provided by this function and set to 'application/json'.
     """
-    import os
-    if (TELEGRAM_TOKEN := os.environ.get('TELEGRAM_TOKEN')):
-        return telegram.Bot(TELEGRAM_TOKEN)
-
-    logger.error('The TELEGRAM_TOKEN must be set.')
-    raise NotImplementedError
+    headers.update({'Content-Type': 'application/json'})
+    return {'statusCode': code, 'headers': headers, 'body': json.dumps(body)}
 
 
-def webhook(event: dict, context: dict) -> dict:
+def error_response(
+        code: int = 400,
+        body: Union[str,dict] = 'Oops... Something went wrong!',
+        headers: dict = {}
+) -> dict:
     """
-    Runs the Telegram webhook.
+    Generates and returns a response to show success.
+
+    Parameters:
+        code (:obj:`int`, optional): Status code.
+        body (:obj:`str` | :obj:`dict`, optional): Body of the message, will be sent as a
+            JSON string.
+        headers (:obj:`dict`, optional): Additional headers. The Content-Type header is
+        provided by this function and set to 'application/json'.
     """
-    logger.info(f'Event: {event}')
-    bot = configure_bot()
+    headers.update({'Content-Type': 'application/json'})
+    return {'statusCode': code, 'headers': headers, 'body': json.dumps(body)}
 
-    if event.get('httpMethod') == 'POST' and event.get('body'):
-        logger.info('Telegram update received')
-        update = telegram.Update.de_json(json.loads(event.get('body')), bot)
-        text = update.message.text
 
-        if text == '/start':
-            text = 'Hi friend! My name is Pathfinder, type /help to see a list of things that I can do!'
-
-        bot.sendMessage(chat_id=update.message.chat.id, text=text)
-        logger.info('Update sent!')
-
-        return OK_RESPONSE
-
-    return ERROR_RESPONSE
-
+# ------------------------------------------------------------------------------
+#   LAMBDA FUNCTIONS
+# ------------------------------------------------------------------------------
 
 def set_webhook(event: dict, context: dict) -> dict:
     """
     Sets the Telegram bot webhook.
     """
-    logger.info(f'Event: {event}')
-    bot = configure_bot()
-    url = f'https://{event.get("headers").get("Host")}/{event.get("requestContext").get("stage")}/'
+    try:
+        logger.info(f'Setting webhook\n\t--- Event ---\n%s.', event)
+        bot = pathfinder.configure_bot()
+        url = 'https://{}/{}'.format(
+            event.get('headers').get('Host'),
+            event.get('requestContext').get('stage'),
+        )
 
-    if bot.set_webhook(url):
-        return OK_RESPONSE
+        if bot.set_webhook(url):
+            return ok_response(body=f'Webhook set -> {url}')
 
-    return ERROR_RESPONSE
+    except Exception as e:
+        return error_response(body=f'Exception: {e}')
 
+    # reched on error.
+    return error_response(body='Failed to set webhook.')
+
+
+def webhook(event: dict, context: dict) -> dict:
+    """
+    Runs the webhook for received Telegram updates.
+    """
+    try:
+        logger.info(f'Running webhook\n\t--- Event ---\n%s', event)
+
+        if event.get('httpMethod') == 'POST' and event.get('body'):
+            dispatcher = pathfinder.configure_dispatcher()
+            update = telegram.Update.de_json(json.loads(event.get('body')), dispatcher.bot)
+            dispatcher.process_update(update)
+            return ok_response(body='Update handled propperly.')
+
+    except Exception as e:
+        return error_response(body=f'Exception {e}')
+
+    # reached on error.
+    return error_response(body=f'Unsupported method / missing body.')
