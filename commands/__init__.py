@@ -10,6 +10,7 @@ import telegram.ext
 
 from .command import REGISTERED_HANDLERS
 from .greet import GreetCommand
+from .stock import StockCommand
 
 
 __all__ = ( 'load_handlers', )
