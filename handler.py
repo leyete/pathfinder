@@ -83,7 +83,7 @@ def set_webhook(event: dict, context: dict) -> dict:
             return ok_response(body=f'Webhook set -> {url}')
 
     except Exception as e:
-        return error_response(body=f'Exception: {e}')
+        logger.exception('Exception on set_webhook.')
 
     # reched on error.
     return error_response(body='Failed to set webhook.')
@@ -103,7 +103,7 @@ def webhook(event: dict, context: dict) -> dict:
             return ok_response(body='Update handled propperly.')
 
     except Exception as e:
-        return error_response(body=f'Exception {e}')
+        logger.exception('Exception on webhook.')
 
     # reached on error.
     return error_response(body=f'Unsupported method / missing body.')
